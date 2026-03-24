@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Elora AI — Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --yellow: #ffd400;
+      --green: #00ff88;
+      --red: #ff4455;
+      --blue: #3b82f6;
+      --bg: #050508;
+      --surface: #0a0a12;
+      --surface2: #0f0f1a;
+      --surface3: #141422;
+      --border: rgba(255,212,0,0.08);
+      --border-b: rgba(255,212,0,0.15);
+      --text: #ffffff;
+      --dim: rgba(255,255,255,0.45);
+      --mono: 'JetBrains Mono', monospace;
+    }
+    * { margin:0;padding:0;box-sizing:border-box; }
+    body { background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh; }
+
+    /* ── Top bar ── */
+    .topbar { display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid var(--border);background:var(--surface); }
+    .topbar .logo { font-family:var(--mono);font-weight:700;color:var(--yellow);font-size:16px;letter-spacing:2px;text-decoration:none; }
+    .topbar .logo .dot { display:inline-block;width:6px;height:6px;background:var(--green);border-radius:50%;margin-left:6px;animation:blink 2s infinite; }
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+    .topbar nav { display:flex;gap:6px; }
+    .topbar nav a { font-family:var(--mono);font-size:11px;color:var(--dim);text-decoration:none;padding:6px 14px;border-radius:4px;transition:all .2s;letter-spacing:.5px; }
+    .topbar nav a:hover, .topbar nav a.active { color:var(--yellow);background:rgba(255,212,0,.06); }
+    .topbar .connect-btn { font-family:var(--mono);font-size:11px;background:var(--yellow);color:#000;padding:6px 16px;border:none;border-radius:4px;cursor:pointer;font-weight:700;letter-spacing:.5px; }
+
+    /* ── Layout ── */
+    .dashboard { display:grid;grid-template-columns:1fr;gap:16px;padding:20px 24px;max-width:1200px;margin:0 auto; }
+
+    /* ── Tabs ── */
+    .tabs { display:flex;gap:4px;margin-bottom:8px; }
+    .tab { font-family:var(--mono);font-size:11px;color:var(--dim);padding:8px 16px;cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;letter-spacing:.5px; }
+    .tab:hover { color:var(--text); }
+    .tab.active { color:var(--yellow);border-bottom-color:var(--yellow); }
+
+    /* ── Cards ── */
+    .card { background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden; }
+    .card-header { display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border); }
+    .card-title { font-family:var(--mono);font-size:12px;color:var(--dim);letter-spacing:1px; }
+    .card-body { padding:18px; }
+
+    /* ── Stats row ── */
+    .stat-grid { display:grid;grid-template-columns:repeat(5,1fr);gap:12px; }
+    .stat-card { background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:18px; }
+    .stat-label { font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:1px;margin-bottom:6px; }
+    .stat-value { font-family:var(--mono);font-size:26px;font-weight:700; }
+    .stat-value.green { color:var(--green); }
+    .stat-value.red { color:var(--red); }
+    .stat-value.yellow { color:var(--yellow); }
+    .stat-change { font-family:var(--mono);font-size:11px;margin-top:4px; }
+    .stat-change.up { color:var(--green); }
+    .stat-change.down { color:var(--red); }
+
+    /* ── Calendar ── */
+    .calendar { display:grid;grid-template-columns:repeat(7,1fr);gap:2px; }
+    .cal-header { font-family:var(--mono);font-size:10px;color:var(--dim);text-align:center;padding:8px 0;letter-spacing:1px; }
+    .cal-day { background:var(--surface2);border:1px solid var(--border);border-radius:3px;min-height:72px;padding:6px 8px;font-size:12px;position:relative;transition:all .2s; }
+    .cal-day:hover { border-color:var(--border-b); }
+    .cal-day .date { font-family:var(--mono);font-size:10px;color:var(--dim); }
+    .cal-day.today { border-color:var(--yellow);background:rgba(255,212,0,.03); }
+    .cal-day.today .date { color:var(--yellow); }
+    .cal-day .pnl { font-family:var(--mono);font-size:13px;font-weight:600;margin-top:6px; }
+    .cal-day .trades { font-family:var(--mono);font-size:9px;color:var(--dim);margin-top:2px; }
+    .cal-day .pnl.win { color:var(--green); }
+    .cal-day .pnl.loss { color:var(--red); }
+    .cal-day.empty { background:transparent;border-color:transparent; }
+    .cal-nav { display:flex;align-items:center;gap:16px; }
+    .cal-nav button { background:none;border:1px solid var(--border);color:var(--dim);padding:4px 12px;cursor:pointer;font-family:var(--mono);font-size:12px;border-radius:3px; }
+    .cal-nav button:hover { color:var(--yellow);border-color:var(--border-b); }
+    .cal-nav .month { font-family:var(--mono);font-size:14px;font-weight:600;min-width:160px;text-align:center; }
+
+    /* ── News/Events ── */
+    .event-list { max-height:320px;overflow-y:auto; }
+    .event-row { display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px; }
+    .event-row:last-child { border-bottom:none; }
+    .event-time { font-family:var(--mono);font-size:11px;color:var(--dim);min-width:52px; }
+    .event-impact { width:8px;height:8px;border-radius:50%;flex-shrink:0; }
+    .event-impact.high { background:var(--red); }
+    .event-impact.medium { background:var(--yellow); }
+    .event-impact.low { background:var(--green); }
+    .event-currency { font-family:var(--mono);font-size:11px;color:var(--yellow);min-width:36px;font-weight:600; }
+    .event-name { color:var(--text);flex:1; }
+    .event-countdown { font-family:var(--mono);font-size:10px;color:var(--dim); }
+
+    /* ── Signal history ── */
+    .signal-table { width:100%;border-collapse:collapse;font-size:13px; }
+    .signal-table th { font-family:var(--mono);font-size:10px;color:var(--dim);text-align:left;padding:8px 12px;border-bottom:1px solid var(--border);letter-spacing:1px; }
+    .signal-table td { padding:10px 12px;border-bottom:1px solid var(--border); }
+    .signal-table tr:hover { background:rgba(255,212,0,.02); }
+    .badge { font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:2px;font-weight:600; }
+    .badge.buy { background:rgba(0,255,136,.1);color:var(--green); }
+    .badge.sell { background:rgba(255,68,85,.1);color:var(--red); }
+    .badge.win { background:rgba(0,255,136,.1);color:var(--green); }
+    .badge.loss { background:rgba(255,68,85,.1);color:var(--red); }
+    .badge.pending { background:rgba(255,212,0,.1);color:var(--yellow); }
+    .badge.a { background:rgba(0,255,136,.1);color:var(--green); }
+    .badge.b { background:rgba(255,212,0,.1);color:var(--yellow); }
+
+    /* ── Two-col layout ── */
+    .row-2 { display:grid;grid-template-columns:1fr 1fr;gap:16px; }
+    .row-2-wide { display:grid;grid-template-columns:2fr 1fr;gap:16px; }
+
+    /* ── Connect form ── */
+    .connect-panel { max-width:420px;margin:60px auto;padding:0 20px; }
+    .connect-card { background:var(--surface);border:1px solid var(--border-b);border-radius:6px;padding:32px; }
+    .connect-card h2 { font-size:20px;font-weight:700;margin-bottom:6px; }
+    .connect-card .sub { color:var(--dim);font-size:13px;margin-bottom:24px; }
+    .connect-card label { display:block;font-family:var(--mono);font-size:11px;color:var(--dim);margin:14px 0 4px;letter-spacing:.5px; }
+    .connect-card input { width:100%;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:14px;outline:none;font-family:'Inter',sans-serif; }
+    .connect-card input:focus { border-color:var(--yellow); }
+    .connect-card input::placeholder { color:rgba(255,255,255,.2); }
+    .connect-card .submit { width:100%;margin-top:20px;padding:12px;background:var(--yellow);color:#000;border:none;border-radius:4px;font-family:var(--mono);font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.5px; }
+    .connect-card .submit:disabled { opacity:.5;cursor:not-allowed; }
+    .status-msg { margin-top:14px;padding:10px 14px;border-radius:4px;font-size:13px;display:none; }
+    .status-msg.ok { display:block;background:rgba(0,255,136,.08);border:1px solid rgba(0,255,136,.2);color:var(--green); }
+    .status-msg.pending { display:block;background:rgba(255,212,0,.08);border:1px solid rgba(255,212,0,.2);color:var(--yellow); }
+    .status-msg.err { display:block;background:rgba(255,68,85,.08);border:1px solid rgba(255,68,85,.2);color:var(--red); }
+    .info-box { margin-top:24px;padding:16px;background:var(--bg);border-radius:4px;font-size:12px;color:var(--dim);line-height:1.6; }
+    .info-box a { color:var(--yellow);text-decoration:none; }
+
+    /* ── Pages ── */
+    .page { display:none; }
+    .page.active { display:block; }
+
+    @media(max-width:768px) {
+      .stat-grid { grid-template-columns:repeat(2,1fr); }
+      .row-2,.row-2-wide { grid-template-columns:1fr; }
+      .calendar { font-size:10px; }
+      .cal-day { min-height:56px; }
+      .topbar nav { display:none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Top Bar ── -->
+<div class="topbar">
+  <a href="/" class="logo">ELORA AI <span class="dot"></span></a>
+  <nav>
+    <a href="#" class="active" onclick="showPage('dashboard')">DASHBOARD</a>
+    <a href="#" onclick="showPage('calendar')">CALENDAR</a>
+    <a href="#" onclick="showPage('signals')">SIGNALS</a>
+    <a href="#" onclick="showPage('connect')">CONNECT</a>
+  </nav>
+  <button class="connect-btn" onclick="showPage('connect')">CONNECT ACCOUNT</button>
+</div>
+
+<!-- ═══ DASHBOARD PAGE ═══ -->
+<div id="page-dashboard" class="page active">
+  <div class="dashboard">
+
+    <!-- Stats -->
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-label">TODAY'S P&L</div>
+        <div class="stat-value green" id="todayPnl">+$247.80</div>
+        <div class="stat-change up">+2.4% equity</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">WIN RATE</div>
+        <div class="stat-value yellow" id="winRate">72%</div>
+        <div class="stat-change">Last 30 days</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">SIGNALS TODAY</div>
+        <div class="stat-value" id="signalsToday">6</div>
+        <div class="stat-change">3 executed</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">TOTAL PIPS</div>
+        <div class="stat-value green" id="totalPips">+384</div>
+        <div class="stat-change up">This month</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">ACTIVE TRADES</div>
+        <div class="stat-value" id="activeTrades">2</div>
+        <div class="stat-change">GBPUSD, XAUUSD</div>
+      </div>
+    </div>
+
+    <div class="row-2-wide" style="margin-top:16px;">
+      <!-- Recent Signals -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">RECENT_SIGNALS</div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--dim);">LAST 24H</div>
+        </div>
+        <div class="card-body" style="padding:0;">
+          <table class="signal-table">
+            <thead><tr><th>TIME</th><th>PAIR</th><th>DIR</th><th>GRADE</th><th>ENTRY</th><th>R:R</th><th>RESULT</th></tr></thead>
+            <tbody>
+              <tr><td style="font-family:var(--mono);font-size:11px;color:var(--dim);">18:31</td><td>GBPUSD</td><td><span class="badge buy">BUY</span></td><td><span class="badge a">A</span></td><td>1.2745</td><td>2.5:1</td><td><span class="badge win">+38 pips</span></td></tr>
+              <tr><td style="font-family:var(--mono);font-size:11px;color:var(--dim);">15:42</td><td>XAUUSD</td><td><span class="badge sell">SELL</span></td><td><span class="badge a">A</span></td><td>3024.50</td><td>2.5:1</td><td><span class="badge pending">OPEN</span></td></tr>
+              <tr><td style="font-family:var(--mono);font-size:11px;color:var(--dim);">12:15</td><td>EURUSD</td><td><span class="badge buy">BUY</span></td><td><span class="badge b">B</span></td><td>1.0842</td><td>2.5:1</td><td><span class="badge win">+22 pips</span></td></tr>
+              <tr><td style="font-family:var(--mono);font-size:11px;color:var(--dim);">08:03</td><td>GBPJPY</td><td><span class="badge sell">SELL</span></td><td><span class="badge a">A</span></td><td>190.42</td><td>2.5:1</td><td><span class="badge loss">-14 pips</span></td></tr>
+              <tr><td style="font-family:var(--mono);font-size:11px;color:var(--dim);">07:22</td><td>USDJPY</td><td><span class="badge buy">BUY</span></td><td><span class="badge b">B</span></td><td>150.85</td><td>2.5:1</td><td><span class="badge win">+28 pips</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Economic Calendar -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">ECONOMIC_CALENDAR</div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--dim);">TODAY</div>
+        </div>
+        <div class="card-body event-list">
+          <div class="event-row"><div class="event-time">08:30</div><div class="event-impact high"></div><div class="event-currency">USD</div><div class="event-name">Core PCE Price Index</div><div class="event-countdown">DONE</div></div>
+          <div class="event-row"><div class="event-time">10:00</div><div class="event-impact high"></div><div class="event-currency">USD</div><div class="event-name">Consumer Confidence</div><div class="event-countdown">DONE</div></div>
+          <div class="event-row"><div class="event-time">13:30</div><div class="event-impact medium"></div><div class="event-currency">EUR</div><div class="event-name">ECB President Lagarde</div><div class="event-countdown">DONE</div></div>
+          <div class="event-row"><div class="event-time">15:00</div><div class="event-impact high"></div><div class="event-currency">GBP</div><div class="event-name">BOE Interest Rate</div><div class="event-countdown" style="color:var(--red);">2h 14m</div></div>
+          <div class="event-row"><div class="event-time">20:00</div><div class="event-impact medium"></div><div class="event-currency">USD</div><div class="event-name">FOMC Minutes</div><div class="event-countdown">7h 14m</div></div>
+          <div class="event-row"><div class="event-time">23:00</div><div class="event-impact low"></div><div class="event-currency">JPY</div><div class="event-name">Tokyo CPI</div><div class="event-countdown">10h 14m</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ CALENDAR PAGE ═══ -->
+<div id="page-calendar" class="page">
+  <div class="dashboard">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">MONTHLY_P&L_CALENDAR</div>
+        <div class="cal-nav">
+          <button onclick="changeMonth(-1)">&larr;</button>
+          <div class="month" id="calMonth">MARCH 2026</div>
+          <button onclick="changeMonth(1)">&rarr;</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="calendar">
+          <div class="cal-header">MON</div><div class="cal-header">TUE</div><div class="cal-header">WED</div><div class="cal-header">THU</div><div class="cal-header">FRI</div><div class="cal-header">SAT</div><div class="cal-header">SUN</div>
+        </div>
+        <div class="calendar" id="calGrid"></div>
+
+        <!-- Monthly summary -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:24px;">
+          <div class="stat-card"><div class="stat-label">MONTHLY P&L</div><div class="stat-value green">+$1,842</div></div>
+          <div class="stat-card"><div class="stat-label">WIN RATE</div><div class="stat-value yellow">72%</div></div>
+          <div class="stat-card"><div class="stat-label">TOTAL TRADES</div><div class="stat-value">47</div></div>
+          <div class="stat-card"><div class="stat-label">BEST DAY</div><div class="stat-value green">+$412</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SIGNALS PAGE ═══ -->
+<div id="page-signals" class="page">
+  <div class="dashboard">
+    <div class="stat-grid" style="grid-template-columns:repeat(4,1fr);">
+      <div class="stat-card"><div class="stat-label">TOTAL SIGNALS</div><div class="stat-value">142</div><div class="stat-change">This month</div></div>
+      <div class="stat-card"><div class="stat-label">WIN RATE</div><div class="stat-value green">72%</div><div class="stat-change up">+3% vs last month</div></div>
+      <div class="stat-card"><div class="stat-label">AVG R:R</div><div class="stat-value yellow">2.4:1</div><div class="stat-change">Target 2.5:1</div></div>
+      <div class="stat-card"><div class="stat-label">NET PIPS</div><div class="stat-value green">+384</div><div class="stat-change up">102 wins / 40 losses</div></div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <div class="card-header"><div class="card-title">SIGNAL_HISTORY</div></div>
+      <div class="card-body" style="padding:0;max-height:500px;overflow-y:auto;">
+        <table class="signal-table">
+          <thead><tr><th>DATE</th><th>PAIR</th><th>DIR</th><th>GRADE</th><th>CONF</th><th>ENTRY</th><th>SL</th><th>TP</th><th>R:R</th><th>SESSION</th><th>RESULT</th></tr></thead>
+          <tbody id="signalRows"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ CONNECT PAGE ═══ -->
+<div id="page-connect" class="page">
+  <div class="connect-panel">
+    <div style="text-align:center;margin-bottom:32px;">
+      <div style="font-family:var(--mono);color:var(--yellow);font-size:11px;letter-spacing:2px;">ACCOUNT_LINK</div>
+    </div>
+    <div class="connect-card">
+      <h2>Connect Genesis FX</h2>
+      <div class="sub">Log in with your TradeLocker credentials</div>
+      <form id="connectForm">
+        <label>DISCORD_USER_ID</label>
+        <input type="text" id="discordId" placeholder="Right-click name in Discord → Copy User ID" required>
+        <label>TRADELOCKER_EMAIL</label>
+        <input type="email" id="email" placeholder="your@email.com" required>
+        <label>TRADELOCKER_PASSWORD</label>
+        <input type="password" id="password" placeholder="Your TradeLocker password" required>
+        <button type="submit" class="submit" id="submitBtn">CONNECT_ACCOUNT</button>
+      </form>
+      <div id="statusMsg" class="status-msg"></div>
+    </div>
+    <div class="info-box">
+      <strong style="color:var(--yellow);">Don't have an account?</strong><br>
+      Sign up at <a href="https://dashboard.genesisfxmarkets.com/auth/register?ref=ELIDEL729" target="_blank">Genesis FX Markets</a><br><br>
+      <strong style="color:var(--yellow);">How it works:</strong><br>
+      1. Sign up at Genesis FX<br>
+      2. Log in here with TradeLocker credentials<br>
+      3. Once verified, click Execute on signals in Discord
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Page navigation
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.querySelectorAll('.topbar nav a').forEach(a => a.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+// ── URL params
+const params = new URLSearchParams(window.location.search);
+if (params.get('discord_id')) document.getElementById('discordId').value = params.get('discord_id');
+if (params.get('page')) showPage(params.get('page'));
+
+// ── Connect form
+document.getElementById('connectForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('submitBtn');
+  const status = document.getElementById('statusMsg');
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const discordUserId = document.getElementById('discordId').value.trim();
+  if (!email || !password || !discordUserId) { status.className='status-msg err'; status.textContent='All fields required.'; return; }
+  btn.disabled = true; btn.textContent = 'CONNECTING...';
+  status.className='status-msg'; status.style.display='none';
+  try {
+    const API = 'http://82.25.86.102:3100';
+    const res = await fetch(API + '/api/tradelocker-auth', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email,password,discordUserId}) });
+    const data = await res.json();
+    if (!res.ok) { status.className='status-msg err'; status.textContent=data.error||'Connection failed.'; }
+    else if (data.status==='approved') { status.className='status-msg ok'; status.textContent='Account connected and approved! You can now execute trades from Discord.'; }
+    else if (data.status==='pending') { status.className='status-msg pending'; status.textContent='Connected! Awaiting IB verification. You\'ll be notified in Discord.'; }
+    else { status.className='status-msg err'; status.textContent=data.message||'Unknown response.'; }
+  } catch(err) { status.className='status-msg err'; status.textContent='Network error. Try again.'; }
+  btn.disabled=false; btn.textContent='CONNECT_ACCOUNT';
+});
+
+// ── Calendar generation
+const MONTH_NAMES = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
+let calYear = 2026, calMonthIdx = 2; // March 2026
+
+// Sample P&L data (will be replaced with real API data)
+const samplePnl = {
+  '2026-03-03':{ pnl:182, trades:4 },'2026-03-04':{ pnl:-45, trades:2 },'2026-03-05':{ pnl:312, trades:5 },
+  '2026-03-06':{ pnl:95, trades:3 },'2026-03-07':{ pnl:210, trades:4 },'2026-03-10':{ pnl:-88, trades:3 },
+  '2026-03-11':{ pnl:156, trades:4 },'2026-03-12':{ pnl:78, trades:2 },'2026-03-13':{ pnl:290, trades:5 },
+  '2026-03-14':{ pnl:-32, trades:2 },'2026-03-17':{ pnl:412, trades:6 },'2026-03-18':{ pnl:145, trades:3 },
+  '2026-03-19':{ pnl:-67, trades:2 },'2026-03-20':{ pnl:198, trades:4 },'2026-03-21':{ pnl:88, trades:3 },
+  '2026-03-24':{ pnl:248, trades:6 },
+};
+
+function renderCalendar() {
+  document.getElementById('calMonth').textContent = MONTH_NAMES[calMonthIdx] + ' ' + calYear;
+  const grid = document.getElementById('calGrid');
+  grid.innerHTML = '';
+  const firstDay = new Date(calYear, calMonthIdx, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonthIdx + 1, 0).getDate();
+  const offset = firstDay === 0 ? 6 : firstDay - 1;
+  const today = new Date();
+  for (let i = 0; i < offset; i++) grid.innerHTML += '<div class="cal-day empty"></div>';
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${calYear}-${String(calMonthIdx+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const data = samplePnl[dateStr];
+    const isToday = today.getFullYear()===calYear && today.getMonth()===calMonthIdx && today.getDate()===d;
+    const isWeekend = new Date(calYear, calMonthIdx, d).getDay() % 6 === 0;
+    let html = `<div class="cal-day${isToday?' today':''}${isWeekend&&!data?' empty':''}">`;
+    html += `<div class="date">${d}</div>`;
+    if (data) {
+      html += `<div class="pnl ${data.pnl>=0?'win':'loss'}">${data.pnl>=0?'+':''}$${Math.abs(data.pnl)}</div>`;
+      html += `<div class="trades">${data.trades} trades</div>`;
+    }
+    html += '</div>';
+    grid.innerHTML += html;
+  }
+}
+renderCalendar();
+
+function changeMonth(delta) {
+  calMonthIdx += delta;
+  if (calMonthIdx > 11) { calMonthIdx = 0; calYear++; }
+  if (calMonthIdx < 0) { calMonthIdx = 11; calYear--; }
+  renderCalendar();
+}
+
+// ── Signal history table
+const sampleSignals = [
+  { date:'Mar 24 18:31', pair:'GBPUSD', dir:'BUY', grade:'A', conf:82, entry:'1.2745', sl:'1.2710', tp:'1.2832', rr:'2.5:1', session:'London', result:'+38 pips', win:true },
+  { date:'Mar 24 15:42', pair:'XAUUSD', dir:'SELL', grade:'A', conf:78, entry:'3024.50', sl:'3031.20', tp:'3007.80', rr:'2.5:1', session:'NY', result:'OPEN', win:null },
+  { date:'Mar 24 12:15', pair:'EURUSD', dir:'BUY', grade:'B', conf:68, entry:'1.0842', sl:'1.0818', tp:'1.0902', rr:'2.5:1', session:'NY', result:'+22 pips', win:true },
+  { date:'Mar 24 08:03', pair:'GBPJPY', dir:'SELL', grade:'A', conf:85, entry:'190.42', sl:'190.78', tp:'189.52', rr:'2.5:1', session:'London', result:'-14 pips', win:false },
+  { date:'Mar 24 07:22', pair:'USDJPY', dir:'BUY', grade:'B', conf:71, entry:'150.85', sl:'150.54', tp:'151.62', rr:'2.5:1', session:'London', result:'+28 pips', win:true },
+  { date:'Mar 21 14:30', pair:'EURUSD', dir:'SELL', grade:'A', conf:80, entry:'1.0895', sl:'1.0922', tp:'1.0828', rr:'2.5:1', session:'NY', result:'+42 pips', win:true },
+  { date:'Mar 21 08:15', pair:'GBPUSD', dir:'BUY', grade:'A', conf:88, entry:'1.2680', sl:'1.2648', tp:'1.2760', rr:'2.5:1', session:'London', result:'+55 pips', win:true },
+  { date:'Mar 20 13:45', pair:'XAUUSD', dir:'BUY', grade:'B', conf:72, entry:'2998.00', sl:'2990.50', tp:'3016.75', rr:'2.5:1', session:'NY', result:'+18 pips', win:true },
+];
+const tbody = document.getElementById('signalRows');
+sampleSignals.forEach(s => {
+  const rc = s.win === null ? 'pending' : (s.win ? 'win' : 'loss');
+  tbody.innerHTML += `<tr>
+    <td style="font-family:var(--mono);font-size:11px;color:var(--dim);">${s.date}</td>
+    <td>${s.pair}</td>
+    <td><span class="badge ${s.dir.toLowerCase()}">${s.dir}</span></td>
+    <td><span class="badge ${s.grade.toLowerCase()}">${s.grade}</span></td>
+    <td style="font-family:var(--mono);font-size:12px;">${s.conf}</td>
+    <td style="font-family:var(--mono);font-size:12px;">${s.entry}</td>
+    <td style="font-family:var(--mono);font-size:12px;">${s.sl}</td>
+    <td style="font-family:var(--mono);font-size:12px;">${s.tp}</td>
+    <td>${s.rr}</td>
+    <td style="font-size:12px;">${s.session}</td>
+    <td><span class="badge ${rc}">${s.result}</span></td>
+  </tr>`;
+});
+</script>
+</body>
+</html>
