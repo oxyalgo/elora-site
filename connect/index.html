@@ -337,7 +337,7 @@ document.getElementById('connectForm').addEventListener('submit', async (e) => {
   btn.disabled = true; btn.textContent = 'CONNECTING...';
   status.className='status-msg'; status.style.display='none';
   try {
-    const API = 'http://82.25.86.102:3100';
+    const API = 'https://srv1324474.hstgr.cloud';
     const res = await fetch(API + '/api/tradelocker-auth', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email,password,discordUserId}) });
     const data = await res.json();
     if (!res.ok) { status.className='status-msg err'; status.textContent=data.error||'Connection failed.'; }
